@@ -1,5 +1,6 @@
 package com.banking.otp.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
@@ -12,10 +13,10 @@ public class RestClientConfig {
 
     @Bean
     @LoadBalanced
-    public RestClient.Builder loadBalancedRestClientBuilder() {
-        return RestClient.builder();
+    public RestClient.Builder loadBalancedRestClientBuilder(ObservationRegistry observationRegistry) {
+        // The registry makes every outgoing call a span and adds the trace headers.
+        return RestClient.builder().observationRegistry(observationRegistry);
     }
-
     @Bean
     public RestClient notificationRestClient(@LoadBalanced RestClient.Builder builder,
                                              @Value("${app.notification.base-url}") String baseUrl) {

@@ -1,6 +1,8 @@
-# otp-service
+# OTP Service
 
 > Owns the lifecycle of one-time passwords for a bank transfer: it generates the 6-digit code, stores **only a keyed hash** of it in Redis, hands the plaintext code to the notification service for e-mail delivery, and verifies a code that the user presents. Application port **8086**, management/metrics port **18086**.
+
+## Table of Contents
 
 - [What It Does](#what-it-does)
 - [Architecture At A Glance](#architecture-at-a-glance)
@@ -135,7 +137,7 @@ Response body — `VerifyOtpResponse`:
 
 Status codes: **200** for all of the outcomes above; **400** on validation failure or a malformed body (`"Malformed request body"`); **404** unknown path (`"Not found"`); **500** unexpected (`"Something went wrong"`); **503** if Redis fails (`"OTP storage is unavailable, please try again"`).
 
-### Error Response Shape
+## Error Response Shape
 
 Every non-2xx response uses the same body — `ErrorResponse`:
 
@@ -618,14 +620,3 @@ curl -i http://localhost:8086/internal/otp/nope
 * **The service exposes `health,info,prometheus` on port 18086** and no authentication on either. Keep that port internal.
 * **`OtpHasher.matches(...)` is dead code** on the store path — the comparison is done inside the Redis Lua script, not in Java.
 * **The `otp.events` topic keeps messages for 2 hours**, deliberately longer than the 5-minute OTP lifetime so that a notification service outage does not lose the code.
-# otp-service
-
-**Author:** [Jahid Hasan](https://github.com/Md-Jahid-Hasan-10)
-
-**Project:** Banking Microservices — OTP Service
-
-**Responsibilities:**
-- OTP generation and verification
-- Redis storage with keyed hashing
-- Kafka command and event handling
-- OTP expiry and retry protection

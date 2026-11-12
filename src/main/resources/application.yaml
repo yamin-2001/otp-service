@@ -1,6 +1,12 @@
 server:
   port: 8086
 management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+      tracing:
+        endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
   server:
     port: 18086
   endpoints:
@@ -11,6 +17,9 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        api.calls: true
+        kafka.consume: true
+        client.calls: true
 spring:
   application:
     name: otp-service
@@ -53,6 +62,9 @@ eureka:
     prefer-ip-address: true
 
 app:
+  observability:
+    log-bodies: true
+    max-body-length: 2048
   notification:
     base-url: http://notification-service
   otp:
@@ -64,3 +76,18 @@ app:
   messaging:
     producer-name: otp-service
     crypto-key: ${EVENT_CRYPTO_KEY:REDACTED}
+
+logging:
+  structured:
+    format:
+      file: logstash
+    json:
+      add:
+        service: ${spring.application.name}
+  file:
+    name: ${BANKING_LOG_DIR:${user.home}/banking-logs}/${spring.application.name}.json
+  logback:
+    rollingpolicy:
+      max-file-size: 20MB
+      max-history: 3
+      total-size-cap: 200MB
