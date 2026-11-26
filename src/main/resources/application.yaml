@@ -24,12 +24,14 @@ spring:
   application:
     name: otp-service
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - "optional:file:../.env[.properties]"
+      - "optional:file:.env[.properties]"
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:REDACTED}
+      password: ${REDIS_PASSWORD}
       timeout: 2s
       connect-timeout: 2s
   kafka:
@@ -71,11 +73,12 @@ app:
     expiry-minutes: 5
     max-attempts: 3
     resend-cooldown-seconds: 30
-    hash-secret: ${OTP_HASH_SECRET:REDACTED}
+    hash-secret: ${OTP_HASH_SECRET}
     log-dev-otp: ${OTP_LOG_DEV:false}
   messaging:
     producer-name: otp-service
-    crypto-key: ${EVENT_CRYPTO_KEY:REDACTED}
+    # Must decode to exactly 32 bytes and match user-service and notification-service.
+    crypto-key: ${EVENT_CRYPTO_KEY}
 
 logging:
   structured:
