@@ -171,7 +171,7 @@ Example:
 
 ### `otp_db` / `otp_records` are a legacy artefact — do not use them
 
-The root `postgres/init/01-create-databases.sql` still contains `CREATE DATABASE otp_db;`. **That database is never used by this service.** It is a leftover from an earlier JPA implementation.
+The root `postgres-init/01-create-databases.sql` does **not** contain `CREATE DATABASE otp_db;`. **That database is never used by this service.** It is a leftover from an earlier JPA implementation, and the `CREATE DATABASE otp_db;` line that used to create it has since been removed — a fresh PostgreSQL volume does not have an `otp_db` at all.
 
 The evidence is in this repository's own history. Commit `4efc26e` contained:
 
@@ -331,7 +331,7 @@ Topic retention (from the event-bus catalogue): `otp.events` is kept for **2 hou
 | `spring.application.name` | `otp-service` | Name registered with Eureka. |
 | `spring.data.redis.host` | `${REDIS_HOST:127.0.0.1}` | Redis host. |
 | `spring.data.redis.port` | `${REDIS_PORT:6379}` | Redis port. |
-| `spring.data.redis.password` | `${REDIS_PASSWORD:REDACTED}` | Redis password. |
+| `spring.data.redis.password` | `${REDIS_PASSWORD}` | Redis password. |
 | `spring.data.redis.timeout` | `2s` | Command timeout. |
 | `spring.data.redis.connect-timeout` | `2s` | Connect timeout. |
 | `spring.kafka.bootstrap-servers` | `${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}` | Broker list. |
@@ -359,10 +359,10 @@ Topic retention (from the event-bus catalogue): `otp.events` is kept for **2 hou
 | `app.otp.expiry-minutes` | `5` | Lifetime of the OTP in Redis; also the `expiresAt` on `OtpIssued`. |
 | `app.otp.max-attempts` | `3` | Maximum number of wrong verification attempts before the code is locked. |
 | `app.otp.resend-cooldown-seconds` | `30` | Minimum seconds between two OTPs for the same user + purpose + reference. |
-| `app.otp.hash-secret` | `${OTP_HASH_SECRET:REDACTED}` | HMAC-SHA256 key for hashing the code. |
+| `app.otp.hash-secret` | `${OTP_HASH_SECRET:<your OTP hash secret>}` | HMAC-SHA256 key for hashing the code. |
 | `app.otp.log-dev-otp` | `${OTP_LOG_DEV:false}` | When `true`, the plaintext code is logged at WARN: `"DEV ONLY - OTP for otpId {} is {}"` (REST path) / `"DEV ONLY - OTP for transfer {} (otpId {}) is {}"` (Kafka path). |
 | `app.messaging.producer-name` | `otp-service` | The `producer` field of the published envelope. |
-| `app.messaging.crypto-key` | `${EVENT_CRYPTO_KEY:REDACTED}` | Base64 AES-256 key for `EventCrypto`; must be 32 bytes. |
+| `app.messaging.crypto-key` | `${EVENT_CRYPTO_KEY:<your event crypto key>}` | Base64 AES-256 key for `EventCrypto`; must be 32 bytes. |
 | `app.notification.base-url` | `http://notification-service` | Base URL of the notification service for the load-balanced `RestClient`. Connect timeout 3000 ms, read timeout 10000 ms. |
 
 Binding classes: `OtpProperties` (`@ConfigurationProperties(prefix = "app.otp")`, record `expiryMinutes`, `maxAttempts`, `resendCooldownSeconds`, `hashSecret`, `logDevOtp`) and `MessagingProperties` (`@ConfigurationProperties(prefix = "app.messaging")`, record `producerName`, `cryptoKey`).
@@ -373,12 +373,12 @@ Binding classes: `OtpProperties` (`@ConfigurationProperties(prefix = "app.otp")`
 |---|---|---|
 | `REDIS_HOST` | `127.0.0.1` | `spring.data.redis.host` |
 | `REDIS_PORT` | `6379` | `spring.data.redis.port` |
-| `REDIS_PASSWORD` | `REDACTED` | `spring.data.redis.password` |
+| `REDIS_PASSWORD` | *(no default — mandatory)* | `spring.data.redis.password` |
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | `spring.kafka.bootstrap-servers` |
 | `EUREKA_URL` | `http://localhost:8761/eureka` | `eureka.client.service-url.defaultZone` |
-| `OTP_HASH_SECRET` | `REDACTED` | `app.otp.hash-secret` |
+| `OTP_HASH_SECRET` | `<your OTP hash secret>` | `app.otp.hash-secret` |
 | `OTP_LOG_DEV` | `false` | `app.otp.log-dev-otp` |
-| `EVENT_CRYPTO_KEY` | `REDACTED` | `app.messaging.crypto-key` |
+| `EVENT_CRYPTO_KEY` | `<your event crypto key>` | `app.messaging.crypto-key` |
 | `SERVER_PORT` | `8086` (set by `run-all.sh`) | Overrides `server.port`. |
 
 #### Environment variables you must set
@@ -455,12 +455,12 @@ Jar: `otp-service/target/otp-service-0.0.1-SNAPSHOT.jar`.
 cd otp-service
 export REDIS_HOST=127.0.0.1
 export REDIS_PORT=6379
-export REDIS_PASSWORD='REDACTED'
+export REDIS_PASSWORD='<your redis password>'
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 export EUREKA_URL=http://localhost:8761/eureka
-export OTP_HASH_SECRET='REDACTED'
+export OTP_HASH_SECRET='<your OTP hash secret>'
 export OTP_LOG_DEV=false
-export EVENT_CRYPTO_KEY='REDACTED'
+export EVENT_CRYPTO_KEY='<your event crypto key>'
 export SERVER_PORT=8086
 
 java -jar target/otp-service-0.0.1-SNAPSHOT.jar
@@ -586,7 +586,7 @@ curl -i http://localhost:8086/internal/otp/nope
 | `app.notification.base-url` | `http://notification-service` | The notification service URL; use `http://localhost:8087` for local runs. |
 | `server.port` | `8086` | The application port. |
 | `management.server.port` | `18086` | The actuator/metrics port. |
-| `spring.data.redis.host` / `.port` / `.password` | `127.0.0.1` / `6379` / `REDACTED` | Your Redis instance. |
+| `spring.data.redis.host` / `.port` / `.password` | `127.0.0.1` / `6379` / *(no default)* | Your Redis instance. |
 
 ## Troubleshooting
 
@@ -609,7 +609,7 @@ curl -i http://localhost:8086/internal/otp/nope
 
 ## Notes and Known Limitations
 
-* **The `otp_db` database and the `otp_records` table are a legacy artefact.** They were created by an earlier JPA implementation (`OtpRecord`, `OtpRecordRepository`, both deleted in commit `4a12223`) and are **not** used by the running service. `postgres/init/01-create-databases.sql` still contains `CREATE DATABASE otp_db;` — the database exists, but nothing in this service reads or writes it. All live state is in Redis.
+* **The `otp_db` database and the `otp_records` table are a legacy artefact.** They were created by an earlier JPA implementation (`OtpRecord`, `OtpRecordRepository`, both deleted in commit `4a12223`) and are **not** used by the running service. `postgres-init/01-create-databases.sql` no longer contains `CREATE DATABASE otp_db;` — a fresh PostgreSQL volume does not have an `otp_db` at all, and nothing in this service reads or writes one. All live state is in Redis.
 * **The plaintext code lives in three places**: in the e-mail body, in the request body of the REST call to the notification service, and — for a very short time — in the local variable of the handler. It is never written to a database and never written to a log unless `app.otp.log-dev-otp` is `true`.
 * **`app.otp.log-dev-otp` is a development switch.** Turn it off in any shared environment: it prints the code at WARN level (`"DEV ONLY - OTP for otpId {} is {}"`). The repository's `run.env` sets `OTP_LOG_DEV=true`.
 * **The built-in defaults are development defaults.** `OTP_HASH_SECRET`, `EVENT_CRYPTO_KEY` and `REDIS_PASSWORD` all ship with a value in `application.yaml`. Rotate them before any shared deployment.
